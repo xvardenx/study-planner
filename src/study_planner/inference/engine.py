@@ -1,7 +1,10 @@
 """Exact inference for complete daily scenario evidence."""
 
+from collections.abc import Hashable, Sequence
 from functools import lru_cache
+from typing import cast
 
+from pgmpy.factors.discrete import DiscreteFactor
 from pgmpy.inference import VariableElimination
 
 from study_planner.inference.network import (
@@ -32,8 +35,8 @@ def _inference() -> VariableElimination:
 
 
 def exam_success_probability(
-    difficulties: tuple[str, str, str],
-    masteries: tuple[str, str, str],
+    difficulties: Sequence[str],
+    masteries: Sequence[str],
     stress: str,
     days_remaining: int,
 ) -> float:
@@ -47,14 +50,20 @@ def exam_success_probability(
     if stress not in STRESS_STATES:
         raise ValueError("stress must be low, medium, or high")
 
-    evidence = {"Stress": stress, "DaysToExam": days_to_exam_state(days_remaining)}
+    time_state = days_to_exam_state(days_remaining)
+    evidence: dict[Hashable, str] = {"Stress": stress, "DaysToExam": time_state}
     for index, (difficulty, mastery) in enumerate(
         zip(difficulties, masteries, strict=True), 1
     ):
         evidence[f"Difficulty{index}"] = difficulty
         evidence[f"Mastery{index}"] = mastery
 
-    posterior = _inference().query(
-        ["ExamSuccess"], evidence=evidence, show_progress=False
+    # pgmpy annotates evidence values as integers, but named CPDs require state names.
+    pgmpy_evidence = cast(dict[Hashable, int], evidence)
+    posterior = cast(
+        DiscreteFactor,
+        _inference().query(
+            ["ExamSuccess"], evidence=pgmpy_evidence, joint=True, show_progress=False
+        ),
     )
     return float(posterior.get_value(ExamSuccess="success"))

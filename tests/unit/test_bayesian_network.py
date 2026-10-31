@@ -1,8 +1,10 @@
 """Behavioral checks for the handcrafted Bayesian network."""
 
 from itertools import product
+from typing import cast
 
 import pytest
+from pgmpy.factors.discrete import TabularCPD
 
 from study_planner.inference import build_network, exam_success_probability
 from study_planner.inference.engine import days_to_exam_state
@@ -14,8 +16,12 @@ def test_network_has_ten_variables_and_normalized_cpds() -> None:
 
     assert len(network.nodes()) == 10
     assert network.check_model()
-    assert len(network.get_cpds("Readiness").get_values()[0]) == 729
-    for cpd in network.get_cpds():
+    readiness_cpd = network.get_cpds("Readiness")
+    assert isinstance(readiness_cpd, TabularCPD)
+    assert len(readiness_cpd.get_values()[0]) == 729
+    cpds = network.get_cpds()
+    assert isinstance(cpds, list)
+    for cpd in cpds:
         assert all(sum(column) == pytest.approx(1) for column in zip(*cpd.get_values()))
 
 
@@ -47,6 +53,7 @@ def test_mastery_stress_and_time_change_success_in_expected_directions() -> None
 def test_cpt_success_is_monotonic_for_all_parent_combinations() -> None:
     """Prevent local CPT exceptions to the documented directional assumptions."""
     cpd = build_network().get_cpds("ExamSuccess")
+    assert isinstance(cpd, TabularCPD)
     for stress, time in product(
         ("low", "medium", "high"), ("urgent", "near", "distant")
     ):
@@ -82,12 +89,12 @@ def test_nonpositive_days_are_rejected(days: int) -> None:
 def test_noninteger_days_are_rejected(days: object) -> None:
     """Ensure fractional and boolean inputs are not treated as dates."""
     with pytest.raises(TypeError):
-        days_to_exam_state(days)
+        days_to_exam_state(cast(int, days))
 
 
 def test_incomplete_or_invalid_evidence_is_rejected() -> None:
     """Require all three concept pairs and a known stress category."""
     with pytest.raises(ValueError):
-        exam_success_probability(("easy", "hard"), ("low",) * 3, "low", 2)  # type: ignore[arg-type]
+        exam_success_probability(("easy", "hard"), ("low",) * 3, "low", 2)
     with pytest.raises(ValueError):
         exam_success_probability(("easy",) * 3, ("low",) * 3, "extreme", 2)
