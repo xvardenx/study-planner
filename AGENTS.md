@@ -8,11 +8,23 @@
 
 ### Python
 
-Include doc-strings for all non-trival functions that explain what the function does. For more complex functions that require more thorough explanations used a Google style doc-string format, only if needed.
+Use `uv` for dependency management and running project commands. Keep runtime
+dependencies in `[project.dependencies]` and development tools in
+`[dependency-groups].dev` in `pyproject.toml`. Commit `uv.lock` for reproducible
+environments.
 
-Always run the below commands after making code changes.
+Include docstrings for all non-trivial functions that explain what the function
+does. For more complex functions that require more thorough explanations, use a
+Google-style docstring format when needed.
+
+Always run the commands below after making code changes.
 
 ```bash
 uv run ruff format .
 uv run ruff check .
+uv run pytest
 ```
+
+Do not commit Google OAuth client secrets, access tokens, refresh tokens, or
+other credentials. Store local credentials only in ignored files or outside the
+repository.
