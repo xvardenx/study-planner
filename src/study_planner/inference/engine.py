@@ -1,10 +1,7 @@
 """Exact inference for complete daily scenario evidence."""
 
-import json
 from collections.abc import Hashable, Sequence
-from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from typing import cast
 
 from pgmpy.factors.discrete import DiscreteFactor
@@ -16,19 +13,6 @@ from study_planner.inference.network import (
     STRESS_STATES,
     build_network,
 )
-
-ROOT_PATH = Path(__file__).parents[3]
-
-
-@dataclass
-class Scenario:
-    days_to_exam: int
-    concept_difficulties: tuple[str, str, str]
-    concept_masteries: tuple[str, str, str]
-    stress: str
-
-    def __post_init__(self):
-        self.exam_state = days_to_exam_state(self.days_to_exam)
 
 
 def days_to_exam_state(days_remaining: int) -> str:
@@ -83,19 +67,3 @@ def exam_success_probability(
         ),
     )
     return float(posterior.get_value(ExamSuccess="success"))
-
-
-def load_scenario(scenario_name: str):
-
-    scenario_path = ROOT_PATH / "scenarios"
-    scenario = scenario_path / f"{scenario_name}.json"
-
-    with open(scenario, "r") as file:
-        scenario_data: dict = json.load(file)
-
-    return Scenario(
-        days_to_exam=scenario_data["days_to_exam"],
-        concept_difficulties=tuple(scenario_data["concept_difficulties"]),
-        concept_masteries=tuple(scenario_data["concept_masteries"]),
-        stress=scenario_data["stress"],
-    )
