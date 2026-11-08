@@ -1,0 +1,6 @@
+{
+    "days_to_exam": 5,
+    "concept_difficulties": ["easy", "easy", "easy"],
+    "concept_masteries": ["low", "low", "low"],
+    "stress": "low"
+}
