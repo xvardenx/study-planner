@@ -106,13 +106,52 @@ def test_rest_reduces_expected_stress_and_urgent_study_costs_more() -> None:
         100 * urgent_five.expected_success_probability
         - 5 * urgent_five.expected_stress_index
         - 0.15 * 25
+        - 0.03 * 25
         - 0.3 * 5
     )
     assert near_five.expected_utility == pytest.approx(
         100 * near_five.expected_success_probability
         - 5 * near_five.expected_stress_index
         - 0.15 * 25
+        - 0.03 * 25
     )
+
+
+def test_starting_stress_adds_progressive_fatigue_cost() -> None:
+    """Charge longer actions more as initial stress rises, even at the cap."""
+    evidence = (("hard", "medium", "medium"), ("medium", "high", "low"), 6)
+    for stress, index in (("low", 0), ("medium", 1), ("high", 2)):
+        decision = evaluate_daily_actions(evidence[0], evidence[1], stress, evidence[2])
+        intensive = _evaluation(DailyAction.INTENSIVE_STUDY, decision)
+        assert intensive.expected_utility == pytest.approx(
+            100 * intensive.expected_success_probability
+            - 5 * intensive.expected_stress_index
+            - 0.15 * 25
+            - 0.03 * index * 25
+        )
+
+
+def test_recommended_hours_do_not_rise_with_starting_stress() -> None:
+    """Keep the recommendation monotone for otherwise identical evidence."""
+    difficulties = ("hard", "medium", "medium")
+    masteries = ("medium", "high", "low")
+    decisions = [
+        evaluate_daily_actions(difficulties, masteries, stress, 6)
+        for stress in ("low", "medium", "high")
+    ]
+    assert [decision.recommended.study_hours for decision in decisions] == [3, 3, 3]
+    assert decisions[0].max_allowed_study_hours is None
+    assert decisions[1].max_allowed_study_hours == 3
+    assert decisions[2].max_allowed_study_hours == 3
+    assert decisions[2].recommended.action is DailyAction.FOCUSED_STUDY
+
+
+def test_stress_limit_can_exclude_the_raw_utility_winner() -> None:
+    """Select the best feasible action while retaining every action score."""
+    focused = ActionEvaluation(DailyAction.FOCUSED_STUDY, 3, (1, 1, 1), 0.5, 2, 30)
+    intensive = ActionEvaluation(DailyAction.INTENSIVE_STUDY, 5, (2, 2, 1), 0.6, 2, 31)
+    assert _select_recommendation((focused, intensive)) is intensive
+    assert _select_recommendation((focused, intensive), max_study_hours=3) is focused
 
 
 def test_recommendation_adapts_to_mastery_and_difficulty() -> None:
