@@ -33,6 +33,11 @@ def main() -> None:
                 f"{evaluation.expected_stress_index:>4.2f}    "
                 f"{evaluation.expected_utility:>6.2f}"
             )
+        limit = decision.max_allowed_study_hours
+        if limit is not None and any(
+            evaluation.study_hours > limit for evaluation in decision.evaluations
+        ):
+            print(f"  Stress-aware study limit: {limit} hours")
         print(f"  Recommended: {decision.recommended.action.value}")
 
 
