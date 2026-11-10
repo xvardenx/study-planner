@@ -57,18 +57,27 @@ handcrafted utility, in points, is:
 EU(action) = 100 × E[P(success | projected evidence)]
              − 5 × E[stress index]
              − 0.15 × h²
+             − 0.03 × starting stress index × h²
              − 0.3 × h if the exam is urgent (1–2 days away)
 ```
 
 The first term values exam success; the second values lower stress even beyond
 its effect on exam success. The quadratic term represents the burden of longer
-study commitments, and the final term discourages last-minute cramming.
-These weights are illustrative preferences and are not fitted to student data.
-The highest-utility action wins; exact ties favor fewer hours.
+study commitments. The starting-stress term adds fatigue from studying while
+already stressed, including at the highest stress state where stress cannot
+increase further. The final term discourages last-minute cramming. These
+weights are illustrative preferences and are not fitted to student data.
+
+To ensure that otherwise identical students are never assigned more hours as
+starting stress rises, the low-stress recommendation sets the maximum hours
+for medium stress, and the medium-stress recommendation sets the maximum for
+high stress. All five actions are scored, but the recommendation maximizes
+utility only among actions within this limit. Exact ties favor fewer hours.
 
 `study_planner.planning.evaluate_daily_actions(difficulties, masteries, stress,
 days_remaining)` returns a `DailyDecision` with the baseline success chance,
-all five action evaluations, and the recommendation. Each evaluation contains
+all five action evaluations, the recommendation, and any stress-based study
+hour limit. Each evaluation contains
 the action, its total hours, its three concept-hour allocations, expected exam
 success chance, expected stress index, and expected utility. Inputs use the
 same state labels and validation as the existing inference API.
