@@ -41,11 +41,12 @@ class ActionEvaluation:
 
 @dataclass(frozen=True)
 class DailyDecision:
-    """All action scores and the highest-utility daily recommendation."""
+    """All action scores and the best recommendation within the stress limit."""
 
     baseline_success_probability: float
     evaluations: tuple[ActionEvaluation, ...]
     recommended: ActionEvaluation
+    max_allowed_study_hours: int | None = None
 
 
 _ACTION_HOURS = {
@@ -165,6 +166,7 @@ def _evaluate_action(
         100 * expected_success
         - 5 * expected_stress
         - 0.15 * hours**2
+        - 0.03 * STRESS_STATES.index(stress) * hours**2
         - (0.3 * hours if urgent else 0)
     )
     return ActionEvaluation(
@@ -179,10 +181,15 @@ def _evaluate_action(
 
 def _select_recommendation(
     evaluations: tuple[ActionEvaluation, ...],
+    max_study_hours: int | None = None,
 ) -> ActionEvaluation:
-    """Choose the highest utility, preferring fewer hours for exact ties."""
+    """Choose the best permitted action, preferring fewer hours for exact ties."""
     return max(
-        evaluations,
+        (
+            evaluation
+            for evaluation in evaluations
+            if max_study_hours is None or evaluation.study_hours <= max_study_hours
+        ),
         key=lambda evaluation: (
             evaluation.expected_utility,
             -evaluation.study_hours,
@@ -196,7 +203,7 @@ def evaluate_daily_actions(
     stress: str,
     days_remaining: int,
 ) -> DailyDecision:
-    """Score every daily action using current evidence and return the best one.
+    """Score actions and keep recommended hours nonincreasing with stress.
 
     The existing inference API validates the evidence. Study and rest effects
     here are handcrafted one-day assumptions; the Bayesian network does not
@@ -206,19 +213,26 @@ def evaluate_daily_actions(
     difficulty_states = tuple(difficulties)
     mastery_states = tuple(masteries)
     urgent = days_to_exam_state(days_remaining) == "urgent"
-    evaluations = tuple(
-        _evaluate_action(
-            action,
-            difficulty_states,
-            mastery_states,
-            stress,
-            days_remaining,
-            urgent,
+    max_allowed_study_hours = None
+    for stress_level in STRESS_STATES[: STRESS_STATES.index(stress) + 1]:
+        evaluations = tuple(
+            _evaluate_action(
+                action,
+                difficulty_states,
+                mastery_states,
+                stress_level,
+                days_remaining,
+                urgent,
+            )
+            for action in DailyAction
         )
-        for action in DailyAction
-    )
-    return DailyDecision(
-        baseline_success_probability=baseline,
-        evaluations=evaluations,
-        recommended=_select_recommendation(evaluations),
-    )
+        recommended = _select_recommendation(evaluations, max_allowed_study_hours)
+        if stress_level == stress:
+            return DailyDecision(
+                baseline_success_probability=baseline,
+                evaluations=evaluations,
+                recommended=recommended,
+                max_allowed_study_hours=max_allowed_study_hours,
+            )
+        max_allowed_study_hours = recommended.study_hours
+    raise AssertionError("validated stress level was not evaluated")
