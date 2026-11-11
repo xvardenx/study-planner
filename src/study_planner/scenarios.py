@@ -6,6 +6,8 @@ from pathlib import Path
 
 from study_planner.planning import DailyDecision, evaluate_daily_actions
 
+SCENARIO_DIR = Path(__file__).resolve().parents[2] / "scenarios"
+
 
 @dataclass(frozen=True)
 class Scenario:
@@ -31,6 +33,20 @@ def load_scenario(path: Path) -> Scenario:
         )
     except (KeyError, TypeError) as error:
         raise ValueError(f"{path}: invalid scenario fields: {error}") from error
+
+
+def load_all_scenarios() -> dict[str, Scenario]:
+    """Loads all scenarios."""
+    paths = sorted(SCENARIO_DIR.glob("*.json"))
+    if not paths:
+        raise FileNotFoundError(f"No scenario JSON files found in {SCENARIO_DIR}")
+
+    scenarios: dict[str, Scenario] = {}
+
+    for path in paths:
+        scenarios[path.stem] = load_scenario(path)
+
+    return scenarios
 
 
 def evaluate_scenario(scenario: Scenario) -> DailyDecision:
