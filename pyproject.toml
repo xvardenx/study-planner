@@ -24,6 +24,9 @@ dev = [
 requires = ["setuptools>=84"]
 build-backend = "setuptools.build_meta"
 
+[project.scripts]
+study-planner = "study_planner.cli:app"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
