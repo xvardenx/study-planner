@@ -9,3 +9,14 @@
 Create a simple Bayes net with variables that model difficulty of 3+ concepts and develops a study plan that maximizes exam success and minimizes last minute cramming stress (use additional variables in your model as needed, but keep your network to ~10 variables or less). Handcraft the model variables and CPTs clearly with an explanation of the parameters, identify the inference task and which variable(s) you query (be sure to document this), define 3+ specific actions for the system, define a utility function that expresses exam success and stress while depending on the query variables, use a built-in inference algorithm to make your query, compute the expected utility of each system action, take the best action, incorporate this into the calendar API and demonstrate this with different concept difficulties that will result in the system taking different actions.
 
 ---
+
+## Example scenarios
+
+Run every example or select one by its filename without `.json`:
+
+```bash
+uv run study-planner all
+uv run study-planner run mixed
+```
+
+Available examples are `advanced`, `mixed`, `stressed`, and `struggling`.
