@@ -1,11 +1,21 @@
 """Exact inference for complete daily scenario evidence."""
 
+import warnings
 from collections.abc import Hashable, Sequence
 from functools import lru_cache
 from typing import cast
 
 from pgmpy.factors.discrete import DiscreteFactor
-from pgmpy.inference import VariableElimination
+
+# pgmpy.inference imports its deprecated StructureScore module internally.
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message=r"`pgmpy\.estimators\.StructureScore` is deprecated.*",
+        category=FutureWarning,
+        module=r"pgmpy\.estimators",
+    )
+    from pgmpy.inference import VariableElimination
 
 from study_planner.inference.network import (
     DIFFICULTY_STATES,

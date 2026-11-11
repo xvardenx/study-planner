@@ -1,5 +1,8 @@
 """Integration checks for example scenario loading and CLI reporting."""
 
+import subprocess
+import sys
+
 from typer.testing import CliRunner
 
 from study_planner.cli import app
@@ -55,3 +58,15 @@ def test_cli_rejects_unknown_scenario() -> None:
     assert result.exit_code != 0
     assert "Unknown scenario 'unknown'" in result.output
     assert "advanced, mixed, stressed, struggling" in result.output
+
+
+def test_cli_startup_omits_pgmpy_deprecation_warning() -> None:
+    """Keep pgmpy's unrelated estimator deprecation out of CLI output."""
+    result = subprocess.run(
+        [sys.executable, "-m", "study_planner.cli", "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "`pgmpy.estimators.StructureScore` is deprecated" not in result.stderr
