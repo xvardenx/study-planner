@@ -130,6 +130,7 @@ def schedule_study_sessions(
         raise ValueError("concept hours must be three nonnegative integers")
     if len(concept_priority) != 3 or set(concept_priority) != {0, 1, 2}:
         raise ValueError("concept priority must order indices 0, 1, and 2")
+    hours = (concept_hours[0], concept_hours[1], concept_hours[2])
 
     free_blocks = get_free_blocks(busy_blocks, window_start, window_end)
     capacity = sum(block.duration // SESSION_DURATION for block in free_blocks)
@@ -146,7 +147,7 @@ def schedule_study_sessions(
         if round_index < selected[concept]
     ]
     if not ordered:
-        return DailySchedule((), tuple(concept_hours))
+        return DailySchedule((), hours)
 
     low, high = 0, int(PREFERRED_BREAK.total_seconds())
     while low < high:
@@ -157,5 +158,9 @@ def schedule_study_sessions(
             high = midpoint - 1
     sessions = _place_sessions(ordered, free_blocks, timedelta(seconds=low))
     assert sessions is not None  # Capacity guarantees placement with no breaks.
-    shortfall = tuple(concept_hours[index] - selected[index] for index in range(3))
+    shortfall = (
+        hours[0] - selected[0],
+        hours[1] - selected[1],
+        hours[2] - selected[2],
+    )
     return DailySchedule(sessions, shortfall)
