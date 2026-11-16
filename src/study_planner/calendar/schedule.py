@@ -2,7 +2,7 @@
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 SESSION_DURATION = timedelta(hours=1)
 PREFERRED_BREAK = timedelta(minutes=30)
@@ -39,6 +39,16 @@ class DailySchedule:
 
     sessions: tuple[TimeBlock, ...]
     unscheduled_hours: tuple[int, int, int]
+
+
+def days_until_exam(exam_date: date, start_date: date | None = None) -> int:
+    """Returns the number of days until the exam. `start_date` defaults to today if not passed."""
+    if start_date is None:
+        start_date = date.today()
+    if exam_date <= start_date:
+        raise ValueError("exam date must come after the start date")
+
+    return (exam_date - start_date).days
 
 
 def get_free_blocks(
