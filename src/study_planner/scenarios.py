@@ -2,8 +2,10 @@
 
 import json
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
+from study_planner.calendar.schedule import days_until_exam
 from study_planner.planning import DailyDecision, evaluate_daily_actions
 
 SCENARIO_DIR = Path(__file__).resolve().parents[2] / "scenarios"
@@ -33,6 +35,37 @@ def load_scenario(path: Path) -> Scenario:
         )
     except (KeyError, TypeError) as error:
         raise ValueError(f"{path}: invalid scenario fields: {error}") from error
+
+
+def load_comprehensive_scenario(name: str) -> list[Scenario]:
+    """Loads a comprehensive scenario as a list of individual scenarios."""
+    path = SCENARIO_DIR / "comprehensive" / f"{name}.json"
+    if not path.exists():
+        raise ValueError(f"{path} does not exist")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise TypeError(f"{path} expected a JSON object")
+
+    days_to_exam = days_until_exam(
+        exam_date=date.fromisoformat(data["exam_date"]),
+        start_date=date.fromisoformat(data["start_date"]),
+    )
+    concept_difficulties = data["concept_difficulties"]
+    daily_scenarios = data["days"]
+    scenarios: list[Scenario] = []
+
+    for daily_data in daily_scenarios.values():
+        scenarios.append(
+            Scenario(
+                days_to_exam=days_to_exam,
+                concept_difficulties=concept_difficulties,
+                concept_masteries=daily_data["concept_masteries"],
+                stress=daily_data["stress"],
+            )
+        )
+        days_to_exam -= 1
+
+    return scenarios
 
 
 def load_all_scenarios() -> dict[str, Scenario]:
