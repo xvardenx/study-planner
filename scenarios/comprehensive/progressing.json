@@ -1,0 +1,31 @@
+{
+    "start_date": "2026-11-16",
+    "exam_date": "2026-11-22",
+    "concept_difficulties": ["easy", "hard", "medium"],
+    "days": {
+        "day_1": {
+            "concept_masteries": ["low", "low", "low"],
+            "stress": "medium"
+        },
+        "day_2": {
+            "concept_masteries": ["low", "low", "low"],
+            "stress": "medium"
+        },
+        "day_3": {
+            "concept_masteries": ["medium", "low", "low"],
+            "stress": "medium"
+        },
+        "day_4": {
+            "concept_masteries": ["medium", "low", "medium"],
+            "stress": "medium"
+        },
+        "day_5": {
+            "concept_masteries": ["high", "low", "medium"],
+            "stress": "high"
+        },
+        "day_6": {
+            "concept_masteries": ["high", "medium", "medium"],
+            "stress": "high"
+        }
+    }
+}
