@@ -5,7 +5,12 @@ from rich.console import Console
 from rich.rule import Rule
 from rich.table import Table
 
-from study_planner.scenarios import Scenario, evaluate_scenario, load_all_scenarios
+from study_planner.scenarios import (
+    Scenario,
+    evaluate_scenario,
+    load_all_scenarios,
+    load_comprehensive_scenario,
+)
 
 app = typer.Typer(help="Evaluate example study-planning scenarios.")
 
@@ -14,8 +19,9 @@ def _show_scenario(console: Console, name: str, scenario: Scenario) -> None:
     """Display the evidence, action comparison, and recommendation for a scenario."""
     decision = evaluate_scenario(scenario)
     console.print(Rule(name, style="cyan"))
+    days_to_exam_display = "day" if scenario.days_to_exam == 1 else "days"
     console.print(
-        f"Exam in {scenario.days_to_exam} days  •  Stress: {scenario.stress}  •  "
+        f"Exam in {scenario.days_to_exam} {days_to_exam_display}  •  Stress: {scenario.stress}  •  "
         f"Baseline success: {decision.baseline_success_probability:.1%}"
     )
     console.print(f"Difficulties: {', '.join(scenario.concept_difficulties)}")
@@ -70,6 +76,19 @@ def run(name: str) -> None:
             param_hint="NAME",
         )
     _show_scenario(Console(), name, scenarios[name])
+
+
+@app.command(name="run-comp")
+def run_comprehensive(name: str) -> None:
+    """Load a comprehensive scenario and run inference each day."""
+    try:
+        scenarios = load_comprehensive_scenario(name)
+    except ValueError:
+        raise typer.BadParameter(f"Unknown scenario '{name}'.", param_hint="NAME")
+
+    for index, scenario in enumerate(scenarios):
+        name = f"Day {index + 1}"
+        _show_scenario(Console(), name, scenario)
 
 
 if __name__ == "__main__":
