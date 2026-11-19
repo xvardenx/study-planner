@@ -75,12 +75,64 @@ To ensure that otherwise identical students are never assigned more hours as
 starting stress rises, the low-stress recommendation sets the maximum hours
 for medium stress, and the medium-stress recommendation sets the maximum for
 high stress. All six actions are scored, but the recommendation maximizes
-utility only among actions within this limit. Exact ties favor fewer hours.
+utility only among actions within this limit and any supplied calendar capacity.
+The same calendar capacity applies at every stress level used to derive the
+stress limit; exact ties favor fewer hours.
 
 `study_planner.planning.evaluate_daily_actions(difficulties, masteries, stress,
-days_remaining)` returns a `DailyDecision` with the baseline success chance,
+days_remaining, *, available_study_hours=None)` returns a `DailyDecision` with
+the baseline success chance,
 all six action evaluations, the recommendation, and any stress-based study
 hour limit. Each evaluation contains
 the action, its total hours, its three concept-hour allocations, expected exam
 success chance, expected stress index, and expected utility. Inputs use the
 same state labels and validation as the existing inference API.
+
+## Comprehensive scenario replay
+
+Run `uv run study-planner run-comp progressing` for daily inference, action
+selection, and assigned sessions through the day before the exam. `pipeline.py`
+coordinates these steps and returns `DailyPlan` results; `scenarios.py` loads
+and validates observations, while the CLI renders the results without repeating
+inference. No calendar events are written.
+
+Comprehensive JSON files in `scenarios/comprehensive/` contain `start_date`,
+`exam_date`, three `concept_difficulties`, and a `days` list. Each record has:
+
+```json
+{
+  "date": "2026-11-16",
+  "concept_masteries": ["low", "low", "low"],
+  "stress": "medium",
+  "study_window": {"start": "09:00", "end": "18:00"},
+  "busy_blocks": [{"start": "12:00", "end": "14:00"}]
+}
+```
+
+Use ISO dates and local `HH:MM` times within the same date. Provide exactly one
+record for every day from the start date through the day before the exam;
+records are sorted by date. Evidence and calendar fields are validated before
+inference starts. Invalid records identify the relevant field and date where
+available. Exam day is excluded because inference requires positive days remaining.
+Timezone conversion and Google Calendar integration are outside this offline replay.
+
+Mastery and stress are supplied observations for each date. They are not
+simulated from previous sessions, and improvements must not be attributed to
+the scheduled hours. The runner calculates days remaining from actual dates.
+
+Capacity counts whole one-hour sessions in each free gap after clipping and
+merging busy intervals. Disconnected sub-hour gaps do not combine into an hour.
+Selection respects both capacity and the stress limit while retaining all six
+action scores. Available time is a maximum, not a requirement to fill the day.
+Omitting `available_study_hours` preserves unconstrained calendar behavior.
+
+The scheduler interleaves concepts in the decision layer's priority order,
+favors 30-minute breaks, and reduces breaks before sacrificing study hours.
+The full recommended allocation must fit the calendar snapshot used for
+selection; a shortfall raises a pipeline consistency error. The CLI shows each
+date's evidence, action comparison, capacity, recommended and scheduled hours,
+and session start/end times with concept numbers. Rest days explicitly report
+that no sessions are assigned.
+
+The progressing example restricts the first day to two available hours, which
+changes its recommendation relative to a decision without a calendar limit.

@@ -17,6 +17,12 @@ Run every example or select one by its filename without `.json`:
 ```bash
 uv run study-planner all
 uv run study-planner run mixed
+uv run study-planner run-comp progressing
 ```
 
 Available examples are `advanced`, `mixed`, `stressed`, and `struggling`.
+
+`run-comp progressing` replays each dated observation before the exam, chooses
+an action that fits the day's calendar, and displays assigned study sessions.
+See [the decision model](docs/decision-model.md#comprehensive-scenario-replay)
+for the input format and scheduling assumptions.
