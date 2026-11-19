@@ -1,6 +1,6 @@
 # One-day study decisions
 
-The decision layer compares five actions for **today**. It returns a total
+The decision layer compares six actions for **today**. It returns a total
 number of study hours and their allocation among three concepts. The hours are
 not calendar events or continuous blocks; a later scheduling component can
 split them into sessions. This step does not plan future days.
@@ -11,6 +11,7 @@ split them into sessions. This step does not plan future days.
 | `light_review` | 1 |
 | `standard_study` | 2 |
 | `focused_study` | 3 |
+| `extended_study` | 4 |
 | `intensive_study` | 5 |
 
 ## Assumed action effects
@@ -18,7 +19,8 @@ split them into sessions. This step does not plan future days.
 Hours are allocated one at a time among concepts below high mastery, starting
 with the lowest mastery. Ties favor the harder concept, then its lower concept
 number. The order repeats for additional hours. With three eligible concepts,
-the five-hour action allocates 2, 2, and 1 hours. If all concepts are already
+the four-hour action allocates 2, 1, and 1 hours, and the five-hour action
+allocates 2, 2, and 1 hours. If all concepts are already
 high, the hours are allocated as review time, ordered by difficulty.
 
 Each concept can advance at most one mastery level from one day's action. The
@@ -38,6 +40,7 @@ independent. Stress can change by one level, with no change otherwise:
 | Light review | Up | 0% |
 | Standard study | Up | 5% |
 | Focused study | Up | 10% |
+| Extended study | Up | 17.5% |
 | Intensive study | Up | 25% |
 
 Stress stays within low, medium, and high. These probabilities are planning
@@ -71,12 +74,12 @@ weights are illustrative preferences and are not fitted to student data.
 To ensure that otherwise identical students are never assigned more hours as
 starting stress rises, the low-stress recommendation sets the maximum hours
 for medium stress, and the medium-stress recommendation sets the maximum for
-high stress. All five actions are scored, but the recommendation maximizes
+high stress. All six actions are scored, but the recommendation maximizes
 utility only among actions within this limit. Exact ties favor fewer hours.
 
 `study_planner.planning.evaluate_daily_actions(difficulties, masteries, stress,
 days_remaining)` returns a `DailyDecision` with the baseline success chance,
-all five action evaluations, the recommendation, and any stress-based study
+all six action evaluations, the recommendation, and any stress-based study
 hour limit. Each evaluation contains
 the action, its total hours, its three concept-hour allocations, expected exam
 success chance, expected stress index, and expected utility. Inputs use the

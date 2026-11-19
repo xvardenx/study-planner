@@ -24,6 +24,7 @@ class DailyAction(StrEnum):
     LIGHT_REVIEW = "light_review"
     STANDARD_STUDY = "standard_study"
     FOCUSED_STUDY = "focused_study"
+    EXTENDED_STUDY = "extended_study"
     INTENSIVE_STUDY = "intensive_study"
 
 
@@ -54,6 +55,7 @@ _ACTION_HOURS = {
     DailyAction.LIGHT_REVIEW: 1,
     DailyAction.STANDARD_STUDY: 2,
     DailyAction.FOCUSED_STUDY: 3,
+    DailyAction.EXTENDED_STUDY: 4,
     DailyAction.INTENSIVE_STUDY: 5,
 }
 
@@ -66,6 +68,7 @@ _STRESS_CHANGE_PROBABILITY = {
     DailyAction.LIGHT_REVIEW: 0.0,
     DailyAction.STANDARD_STUDY: 0.05,
     DailyAction.FOCUSED_STUDY: 0.10,
+    DailyAction.EXTENDED_STUDY: 0.175,
     DailyAction.INTENSIVE_STUDY: 0.25,
 }
 
