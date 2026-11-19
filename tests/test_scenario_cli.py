@@ -22,7 +22,7 @@ def test_example_scenarios_change_the_recommendation() -> None:
     struggling = evaluate_scenario(load_scenario(SCENARIO_DIR / "struggling.json"))
 
     assert advanced.recommended.action is DailyAction.REST
-    assert struggling.recommended.action is DailyAction.INTENSIVE_STUDY
+    assert struggling.recommended.action is DailyAction.EXTENDED_STUDY
     assert (
         advanced.baseline_success_probability > struggling.baseline_success_probability
     )
@@ -38,6 +38,7 @@ def test_cli_reports_every_scenario() -> None:
     assert output.count("Baseline success:") == len(list(SCENARIO_DIR.glob("*.json")))
     assert output.count("Recommended:") == len(list(SCENARIO_DIR.glob("*.json")))
     assert "intensive study" in output
+    assert "extended study" in output
     assert "rest" in output
 
 

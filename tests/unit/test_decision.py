@@ -27,17 +27,18 @@ def _evaluation(
     )
 
 
-def test_five_actions_and_priority_allocation() -> None:
+def test_six_actions_and_priority_allocation() -> None:
     """Expose all daily commitments and allocate hours to weaker concepts."""
     decision = evaluate_daily_actions(
         ("hard", "medium", "easy"), ("low", "low", "low"), "low", 5
     )
-    assert [item.study_hours for item in decision.evaluations] == [0, 1, 2, 3, 5]
+    assert [item.study_hours for item in decision.evaluations] == [0, 1, 2, 3, 4, 5]
     assert [item.concept_hours for item in decision.evaluations] == [
         (0, 0, 0),
         (1, 0, 0),
         (1, 1, 0),
         (1, 1, 1),
+        (2, 1, 1),
         (2, 2, 1),
     ]
 
@@ -86,6 +87,42 @@ def test_one_hour_expected_utility_matches_outcome_average() -> None:
     assert light.expected_success_probability == pytest.approx(expected_success)
     assert light.expected_stress_index == 0
     assert light.expected_utility == pytest.approx(100 * expected_success - 0.15)
+
+
+@pytest.mark.parametrize("stress", ["low", "medium", "high"])
+def test_four_hour_expected_utility_matches_outcome_average(stress: str) -> None:
+    """Evaluate four hours using its own learning, stress, and urgent costs."""
+    difficulties = ("medium", "easy", "easy")
+    masteries = ("low", "high", "high")
+    decision = evaluate_daily_actions(difficulties, masteries, stress, 2)
+    extended = _evaluation(DailyAction.EXTENDED_STUDY, decision)
+    stress_index = ("low", "medium", "high").index(stress)
+    next_stress = ("low", "medium", "high")[min(stress_index + 1, 2)]
+    expected_success = sum(
+        mastery_probability
+        * stress_probability
+        * exam_success_probability(difficulties, states, projected_stress, 2)
+        for states, mastery_probability in (
+            (masteries, 0.08),
+            (("medium", "high", "high"), 0.92),
+        )
+        for projected_stress, stress_probability in (
+            (stress, 0.825),
+            (next_stress, 0.175),
+        )
+    )
+    expected_stress = stress_index + (0.175 if stress_index < 2 else 0)
+    assert extended.study_hours == 4
+    assert extended.concept_hours == (4, 0, 0)
+    assert extended.expected_success_probability == pytest.approx(expected_success)
+    assert extended.expected_stress_index == pytest.approx(expected_stress)
+    assert extended.expected_utility == pytest.approx(
+        100 * expected_success
+        - 5 * expected_stress
+        - 0.15 * 16
+        - 0.03 * stress_index * 16
+        - 0.3 * 4
+    )
 
 
 def test_rest_reduces_expected_stress_and_urgent_study_costs_more() -> None:
@@ -139,9 +176,9 @@ def test_recommended_hours_do_not_rise_with_starting_stress() -> None:
         evaluate_daily_actions(difficulties, masteries, stress, 6)
         for stress in ("low", "medium", "high")
     ]
-    assert [decision.recommended.study_hours for decision in decisions] == [3, 3, 3]
+    assert [decision.recommended.study_hours for decision in decisions] == [4, 3, 3]
     assert decisions[0].max_allowed_study_hours is None
-    assert decisions[1].max_allowed_study_hours == 3
+    assert decisions[1].max_allowed_study_hours == 4
     assert decisions[2].max_allowed_study_hours == 3
     assert decisions[2].recommended.action is DailyAction.FOCUSED_STUDY
 
@@ -159,11 +196,11 @@ def test_recommendation_adapts_to_mastery_and_difficulty() -> None:
     mastered = evaluate_daily_actions(("medium",) * 3, ("high",) * 3, "low", 10)
     easy = evaluate_daily_actions(("easy",) * 3, ("medium", "medium", "high"), "low", 2)
     hard = evaluate_daily_actions(("hard",) * 3, ("medium", "medium", "high"), "low", 2)
-    intensive = evaluate_daily_actions(("easy",) * 3, ("low",) * 3, "low", 5)
+    extended = evaluate_daily_actions(("easy",) * 3, ("low",) * 3, "low", 5)
     assert mastered.recommended.action is DailyAction.REST
     assert easy.recommended.action is DailyAction.STANDARD_STUDY
     assert hard.recommended.action is DailyAction.FOCUSED_STUDY
-    assert intensive.recommended.action is DailyAction.INTENSIVE_STUDY
+    assert extended.recommended.action is DailyAction.EXTENDED_STUDY
 
 
 def test_exact_utility_tie_prefers_fewer_hours() -> None:
