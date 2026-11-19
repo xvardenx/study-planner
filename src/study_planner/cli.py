@@ -5,6 +5,8 @@ from rich.console import Console
 from rich.rule import Rule
 from rich.table import Table
 
+from study_planner.pipeline import DailyPlan, run_comprehensive_scenario
+from study_planner.planning import DailyDecision
 from study_planner.scenarios import (
     Scenario,
     evaluate_scenario,
@@ -15,9 +17,10 @@ from study_planner.scenarios import (
 app = typer.Typer(help="Evaluate example study-planning scenarios.")
 
 
-def _show_scenario(console: Console, name: str, scenario: Scenario) -> None:
-    """Display the evidence, action comparison, and recommendation for a scenario."""
-    decision = evaluate_scenario(scenario)
+def _show_scenario(
+    console: Console, name: str, scenario: Scenario, decision: DailyDecision
+) -> None:
+    """Display supplied evidence and decision results without rerunning inference."""
     console.print(Rule(name, style="cyan"))
     days_to_exam_display = "day" if scenario.days_to_exam == 1 else "days"
     console.print(
@@ -62,7 +65,7 @@ def run_all_scenarios() -> None:
     scenarios = load_all_scenarios()
     console = Console()
     for name, scenario in scenarios.items():
-        _show_scenario(console, name, scenario)
+        _show_scenario(console, name, scenario, evaluate_scenario(scenario))
 
 
 @app.command()
@@ -75,20 +78,48 @@ def run(name: str) -> None:
             f"Unknown scenario '{name}'. Available scenarios: {available}",
             param_hint="NAME",
         )
-    _show_scenario(Console(), name, scenarios[name])
+    _show_scenario(Console(), name, scenarios[name], evaluate_scenario(scenarios[name]))
+
+
+def _show_daily_plan(console: Console, plan: DailyPlan) -> None:
+    """Show one replay date's capacity, recommendation, and assigned sessions."""
+    _show_scenario(console, plan.date.isoformat(), plan.evidence, plan.decision)
+    console.print(f"Available study capacity: {plan.available_study_hours} hours")
+    console.print(
+        f"Recommended hours: {plan.decision.recommended.study_hours}  •  "
+        f"Scheduled hours: {len(plan.schedule.sessions)}"
+    )
+    if not plan.schedule.sessions:
+        console.print("No study sessions assigned.")
+        return
+    table = Table(title="Assigned study sessions")
+    table.add_column("Start")
+    table.add_column("End")
+    table.add_column("Concept")
+    for session in plan.schedule.sessions:
+        table.add_row(
+            session.start.strftime("%H:%M:%S"),
+            session.end.strftime("%H:%M:%S"),
+            str(session.concept_index + 1),
+        )
+    console.print(table)
 
 
 @app.command(name="run-comp")
 def run_comprehensive(name: str) -> None:
-    """Load a comprehensive scenario and run inference each day."""
+    """Replay each pre-exam day through inference, selection, and scheduling."""
     try:
-        scenarios = load_comprehensive_scenario(name)
-    except ValueError:
-        raise typer.BadParameter(f"Unknown scenario '{name}'.", param_hint="NAME")
-
-    for index, scenario in enumerate(scenarios):
-        name = f"Day {index + 1}"
-        _show_scenario(Console(), name, scenario)
+        scenario = load_comprehensive_scenario(name)
+    except FileNotFoundError as error:
+        raise typer.BadParameter(
+            f"Unknown comprehensive scenario '{name}'.", param_hint="NAME"
+        ) from error
+    except ValueError as error:
+        raise typer.BadParameter(str(error), param_hint="NAME") from error
+    results = run_comprehensive_scenario(scenario)
+    console = Console()
+    for plan in results:
+        _show_daily_plan(console, plan)
 
 
 if __name__ == "__main__":

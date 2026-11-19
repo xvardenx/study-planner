@@ -71,3 +71,54 @@ def test_cli_startup_omits_pgmpy_deprecation_warning() -> None:
     )
     assert result.returncode == 0
     assert "`pgmpy.estimators.StructureScore` is deprecated" not in result.stderr
+
+
+def test_cli_comprehensive_displays_each_date_and_assigned_sessions():
+    """Replay all days and expose capacity, decisions, and concrete session times."""
+    result = runner.invoke(app, ["run-comp", "progressing"])
+    assert result.exit_code == 0, result.output
+    for day in range(16, 22):
+        assert f"2026-11-{day}" in result.stdout
+    assert "2026-11-22" not in result.stdout
+    assert result.stdout.count("Baseline success:") == 6
+    assert result.stdout.count("Available study capacity:") == 6
+    assert result.stdout.count("Scheduled hours:") == 6
+    assert "Assigned study sessions" in result.stdout
+    assert "09:00:00" in result.stdout
+
+
+def test_cli_comprehensive_distinguishes_missing_and_malformed(monkeypatch, tmp_path):
+    """Invalid existing data must not be misreported as an unknown name."""
+    from study_planner import scenarios
+
+    directory = tmp_path / "comprehensive"
+    directory.mkdir()
+    monkeypatch.setattr(scenarios, "SCENARIO_DIR", tmp_path)
+    missing = runner.invoke(app, ["run-comp", "absent"])
+    assert missing.exit_code != 0
+    assert "Unknown comprehensive scenario" in missing.output
+    (directory / "broken.json").write_text("{}")
+    broken = runner.invoke(app, ["run-comp", "broken"])
+    assert broken.exit_code != 0
+    assert "invalid comprehensive scenario" in broken.output
+    assert "Unknown comprehensive scenario" not in broken.output
+
+
+def test_cli_comprehensive_reports_rest_day(monkeypatch):
+    """Explain empty session output when a day's calendar is fully occupied."""
+    from dataclasses import replace
+
+    from study_planner import cli
+    from study_planner.scenarios import load_comprehensive_scenario
+
+    scenario = load_comprehensive_scenario("progressing")
+    first = scenario.days[0]
+    scenario = replace(
+        scenario,
+        days=(replace(first, busy_blocks=(first.study_window,)), *scenario.days[1:]),
+    )
+    monkeypatch.setattr(cli, "load_comprehensive_scenario", lambda name: scenario)
+    result = runner.invoke(app, ["run-comp", "progressing"])
+    assert result.exit_code == 0, result.output
+    assert "No study sessions assigned." in result.stdout
+    assert "Available study capacity: 0 hours" in result.stdout
