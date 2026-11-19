@@ -227,3 +227,41 @@ def test_invalid_evidence_uses_inference_validation(
     """Reject malformed evidence before scoring any action."""
     with pytest.raises(ValueError):
         evaluate_daily_actions(difficulties, masteries, stress, days)
+
+
+@pytest.mark.parametrize("capacity", [0, 1, 2, 3, 4, 5, None])
+def test_capacity_constrains_choices_and_keeps_stress_monotonic(capacity):
+    """Filter choices at every stress level without hiding action evaluations."""
+    decisions = [
+        evaluate_daily_actions(
+            ("easy",) * 3,
+            ("low",) * 3,
+            stress,
+            5,
+            available_study_hours=capacity,
+        )
+        for stress in ("low", "medium", "high")
+    ]
+    hours = [decision.recommended.study_hours for decision in decisions]
+    assert hours == sorted(hours, reverse=True)
+    assert all(len(decision.evaluations) == 6 for decision in decisions)
+    if capacity is not None:
+        assert all(hour <= capacity for hour in hours)
+    assert decisions[0].max_allowed_study_hours is None
+    if capacity == 4:
+        assert decisions[0].recommended.action is DailyAction.EXTENDED_STUDY
+    if capacity == 0:
+        assert hours == [0, 0, 0]
+
+
+@pytest.mark.parametrize("capacity", [-1, 1.5, True, "4"])
+def test_invalid_capacity_is_rejected(capacity):
+    """Availability must count whole nonnegative hours, excluding booleans."""
+    with pytest.raises(ValueError, match="available_study_hours"):
+        evaluate_daily_actions(
+            ("easy",) * 3,
+            ("low",) * 3,
+            "low",
+            5,
+            available_study_hours=capacity,
+        )

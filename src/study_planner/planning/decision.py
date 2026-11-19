@@ -42,7 +42,7 @@ class ActionEvaluation:
 
 @dataclass(frozen=True)
 class DailyDecision:
-    """All action scores and the best recommendation within the stress limit."""
+    """All action scores and the best recommendation within study limits."""
 
     baseline_success_probability: float
     evaluations: tuple[ActionEvaluation, ...]
@@ -73,26 +73,34 @@ _STRESS_CHANGE_PROBABILITY = {
 }
 
 
+def concept_priority(
+    difficulties: Sequence[str], masteries: Sequence[str]
+) -> tuple[int, ...]:
+    """Order validated concepts by lower mastery, harder difficulty, then index.
+
+    Mastered concepts sort last, leaving the same review ordering when all
+    concepts are high. The full ordering is also used to place study sessions.
+    """
+    return tuple(
+        sorted(
+            range(3),
+            key=lambda index: (
+                MASTERY_STATES.index(masteries[index]),
+                -DIFFICULTY_STATES.index(difficulties[index]),
+                index,
+            ),
+        )
+    )
+
+
 def _allocate_hours(
     difficulties: tuple[str, ...], masteries: tuple[str, ...], hours: int
 ) -> tuple[int, int, int]:
-    """Spread hours across improvable concepts by mastery and difficulty.
-
-    Concepts below high mastery are ordered from lowest mastery to highest,
-    breaking ties by harder difficulty and then concept number. One hour goes
-    to each concept in turn before another round. If all are already high,
-    hours become review time allocated by difficulty.
-    """
-    candidates = [index for index, state in enumerate(masteries) if state != "high"]
+    """Rotate hours through priority concepts below high mastery, or review all."""
+    priority = concept_priority(difficulties, masteries)
+    candidates = [index for index in priority if masteries[index] != "high"]
     if not candidates:
-        candidates = list(range(3))
-    candidates.sort(
-        key=lambda index: (
-            MASTERY_STATES.index(masteries[index]),
-            -DIFFICULTY_STATES.index(difficulties[index]),
-            index,
-        )
-    )
+        candidates = list(priority)
     allocation = [0, 0, 0]
     for hour in range(hours):
         allocation[candidates[hour % len(candidates)]] += 1
@@ -205,13 +213,20 @@ def evaluate_daily_actions(
     masteries: Sequence[str],
     stress: str,
     days_remaining: int,
+    *,
+    available_study_hours: int | None = None,
 ) -> DailyDecision:
     """Score actions and keep recommended hours nonincreasing with stress.
 
     The existing inference API validates the evidence. Study and rest effects
     here are handcrafted one-day assumptions; the Bayesian network does not
-    learn them or represent a causal intervention.
+    learn them or represent a causal intervention. Availability limits selection
+    at every stress level, without changing the reported stress-based limit.
     """
+    if available_study_hours is not None and (
+        type(available_study_hours) is not int or available_study_hours < 0
+    ):
+        raise ValueError("available_study_hours must be a nonnegative integer or None")
     baseline = exam_success_probability(difficulties, masteries, stress, days_remaining)
     difficulty_states = tuple(difficulties)
     mastery_states = tuple(masteries)
@@ -229,7 +244,14 @@ def evaluate_daily_actions(
             )
             for action in DailyAction
         )
-        recommended = _select_recommendation(evaluations, max_allowed_study_hours)
+        limits = [
+            limit
+            for limit in (max_allowed_study_hours, available_study_hours)
+            if limit is not None
+        ]
+        recommended = _select_recommendation(
+            evaluations, min(limits) if limits else None
+        )
         if stress_level == stress:
             return DailyDecision(
                 baseline_success_probability=baseline,
