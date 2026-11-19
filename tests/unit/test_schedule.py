@@ -109,3 +109,17 @@ def test_partial_plan_keeps_higher_priority_hours_and_avoids_busy_time() -> None
     assert [block.concept_index for block in result.sessions] == [1, 0, 1]
     assert [block.start for block in result.sessions] == [at(9), at(11), at(13)]
     assert result.unscheduled_hours == (1, 0, 1)
+
+
+def test_capacity_counts_whole_sessions_per_gap():
+    """Disconnected short gaps cannot combine; overlaps are merged and clipped."""
+    from study_planner.calendar.schedule import study_capacity
+
+    assert study_capacity([TimeBlock(at(9, 30), at(10, 30))], at(9), at(11)) == 0
+    busy = [
+        TimeBlock(at(8), at(10)),
+        TimeBlock(at(9), at(11)),
+        TimeBlock(at(12, 30), at(14)),
+    ]
+    assert study_capacity(busy, at(9), at(16)) == 3
+    assert study_capacity([], at(9), at(13)) == 4

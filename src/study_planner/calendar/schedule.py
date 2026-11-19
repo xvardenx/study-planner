@@ -91,6 +91,16 @@ def get_free_blocks(
     return free_blocks
 
 
+def study_capacity(
+    busy_blocks: Sequence[TimeBlock], window_start: datetime, window_end: datetime
+) -> int:
+    """Count whole one-hour sessions in free gaps, without preferred breaks."""
+    return sum(
+        block.duration // SESSION_DURATION
+        for block in get_free_blocks(busy_blocks, window_start, window_end)
+    )
+
+
 def _place_sessions(
     concepts: Sequence[int], free_blocks: Sequence[TimeBlock], gap: timedelta
 ) -> tuple[TimeBlock, ...] | None:
@@ -143,7 +153,7 @@ def schedule_study_sessions(
     hours = (concept_hours[0], concept_hours[1], concept_hours[2])
 
     free_blocks = get_free_blocks(busy_blocks, window_start, window_end)
-    capacity = sum(block.duration // SESSION_DURATION for block in free_blocks)
+    capacity = study_capacity(busy_blocks, window_start, window_end)
     remaining_capacity = capacity
     selected = [0, 0, 0]
     for concept in concept_priority:
