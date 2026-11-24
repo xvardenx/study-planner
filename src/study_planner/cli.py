@@ -97,6 +97,8 @@ def _show_daily_plan(console: Console, plan: DailyPlan) -> None:
     table.add_column("End")
     table.add_column("Concept")
     for session in plan.schedule.sessions:
+        if session.concept_index is None:
+            raise ValueError("assigned study sessions must have a concept index")
         table.add_row(
             session.start.strftime("%H:%M:%S"),
             session.end.strftime("%H:%M:%S"),
