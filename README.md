@@ -10,6 +10,50 @@ Create a simple Bayes net with variables that model difficulty of 3+ concepts an
 
 ---
 
+## Setup and verification
+
+From a repository checkout, use Python 3.11 or newer and
+[uv](https://docs.astral.sh/uv/):
+
+```bash
+uv sync
+uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+```
+
+Run the repository checks with:
+
+```bash
+uv run pre-commit run --all-files
+uv run pre-commit run --all-files --hook-stage pre-push
+```
+
+The pre-push checks include the test suite. See [AGENTS.md](AGENTS.md) for
+contributor rules and the additional commands required after code changes.
+
+## Project status
+
+Bayesian inference, six-action utility evaluation, contrasting student examples,
+and offline daily session scheduling are implemented. Calendar API integration
+is outstanding: examples read local JSON observations and busy blocks, and do
+not read or write Google Calendar events.
+
+See [project and bug status](docs/project-status.md) for requirement coverage,
+verified example results, limitations, and remaining deliverables.
+
+## Documentation and requirement coverage
+
+The linked documents contain the detailed explanations for the requirements above.
+
+| Requirement or deliverable | Documentation |
+| --- | --- |
+| Three concepts, approximately ten variables, and handcrafted CPT parameters | [Bayesian network specification](docs/bayesian-model.md) |
+| Inference task, query variable, and built-in inference algorithm | [Inference task](docs/bayesian-model.md#inference-task) |
+| Three or more actions and their assumed effects | [One-day study decisions](docs/decision-model.md) |
+| Utility function, expected utility, and best feasible action selection | [Expected utility](docs/decision-model.md#expected-utility) |
+| Different student scenarios and resulting actions | [Example scenarios](#example-scenarios) and [verified results](docs/project-status.md#verified-example-results) |
+| Calendar scheduling and API integration status | [Offline replay](docs/decision-model.md#comprehensive-scenario-replay) and [remaining deliverables](docs/project-status.md#remaining-deliverables) |
+| Project/bug status and feature-to-file explanation | [Project status](docs/project-status.md) and [architecture and file structure](docs/architecture.md) |
+
 ## Example scenarios
 
 Run every example or select one by its filename without `.json`:
