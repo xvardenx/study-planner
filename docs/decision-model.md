@@ -1,9 +1,13 @@
 # One-day study decisions
 
+[README](../README.md#documentation-and-requirement-coverage) ·
+[Bayesian network specification](bayesian-model.md) · [Architecture](architecture.md)
+
 The decision layer compares six actions for **today**. It returns a total
 number of study hours and their allocation among three concepts. The hours are
-not calendar events or continuous blocks; a later scheduling component can
-split them into sessions. This step does not plan future days.
+not calendar events or continuous blocks; the offline scheduler splits them
+into sessions during [comprehensive replay](#comprehensive-scenario-replay).
+This decision step does not plan future days.
 
 | Action | Total hours |
 | --- | ---: |
@@ -52,6 +56,8 @@ action *causes* the projected change.
 
 For every possible post-action mastery and stress state, the decision layer
 queries the existing `P(ExamSuccess=success | concepts, stress, days)` model.
+The [Bayesian specification](bayesian-model.md#inference-task) defines this query
+and its handcrafted CPT parameters.
 It weights each result by that state's assumed probability. Let `h` be the
 action's total hours, and encode stress as low=0, medium=1, high=2. The
 handcrafted utility, in points, is:
@@ -115,6 +121,8 @@ records are sorted by date. Evidence and calendar fields are validated before
 inference starts. Invalid records identify the relevant field and date where
 available. Exam day is excluded because inference requires positive days remaining.
 Timezone conversion and Google Calendar integration are outside this offline replay.
+See [project status](project-status.md#remaining-deliverables) for the outstanding
+calendar API requirement.
 
 Mastery and stress are supplied observations for each date. They are not
 simulated from previous sessions, and improvements must not be attributed to

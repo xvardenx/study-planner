@@ -1,5 +1,8 @@
 # Bayesian network specification
 
+[README](../README.md#documentation-and-requirement-coverage) ·
+[Decision model](decision-model.md) · [Architecture](architecture.md)
+
 The course model has ten variables. It represents three concepts for one exam.
 Each call estimates exam success from the student's current evidence. The
 planning loop will call the same network again on later days with updated
@@ -84,7 +87,11 @@ action will be evaluated by applying its explicitly assumed mastery/stress
 changes to the evidence and repeating this query. The BN does not learn or
 identify causal action effects.
 
-The future scheduling component retains exact dates. Free hours determine
-whether a proposed study action fits, and preferred study times rank open
-slots; neither is currently a BN variable. This keeps the model within the
-course's roughly ten-variable limit while allowing time-aware scheduling.
+The implemented offline scheduling component retains exact dates. Free hours
+determine whether a proposed study action fits; the scheduler places sessions
+at their earliest feasible starts while favoring breaks. Calendar capacity and
+session placement are not BN variables. This keeps the model within the course's
+roughly ten-variable limit while allowing time-aware scheduling. See the
+[comprehensive replay](decision-model.md#comprehensive-scenario-replay) for the
+calendar input and scheduling rules. Calendar API integration remains
+[outstanding](project-status.md#remaining-deliverables).
